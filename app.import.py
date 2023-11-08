@@ -7,39 +7,40 @@ import sys
 import shutil
 
 def import_mongodb_data(mongo_uri, db_name, zip_file_path):
-    client = pymongo.MongoClient(mongo_uri)
-    db = client[db_name]
+    try:
+        client = pymongo.MongoClient(mongo_uri, connect=True)
+        db = client[db_name]
 
-    zip_file_name = os.path.splitext(os.path.basename(zip_file_path))[0]
-    print(zip_file_name)
-    exported_data_path = zip_file_name
+        zip_file_name = os.path.splitext(os.path.basename(zip_file_path))[0]
+        exported_data_path = zip_file_name
+        # os.makedirs(f'{exported_data_path}')
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+            zip_ref.extractall(exported_data_path)
 
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-        zip_ref.extractall(exported_data_path)
+        json_files = [f for f in os.listdir(f'{exported_data_path}/{exported_data_path}') if f.endswith('.json')]
+        for json_file in json_files:
+            collection_name = os.path.splitext(json_file)[0]
 
-    json_files = [f for f in os.listdir(exported_data_path) if f.endswith('.json')]
+            with open(os.path.join(f'{exported_data_path}/{exported_data_path}', json_file), 'r') as file:
+                data = json.load(file)
+                # print(f'{json_file}: ', data)
 
-    for json_file in json_files:
-        collection_name = os.path.splitext(json_file)[0]
+            if isinstance(data, list):
+                for document in data:
+                    formatted_document = json_util.loads(json_util.dumps(document))
+                    db[collection_name].insert_one(formatted_document)
+            else:
+                db[collection_name].insert_one(data)
 
-        with open(os.path.join(exported_data_path, json_file), 'r') as file:
-            data = json.load(file)
-            # print(f'{json_file}: ', data)
+        print('Data has been imported into the MongoDB database')
 
-        if isinstance(data, list):
-            for document in data:
-                formatted_document = json_util.loads(json_util.dumps(document))
-                db[collection_name].insert_one(formatted_document)
-        else:
-            db[collection_name].insert_one(data)
+        # # Delete the exported_data folder
+        # shutil.rmtree(f'{exported_data_path}')
 
-    print('Data has been imported into the MongoDB database')
-
-    # Delete the exported_data folder
-    shutil.rmtree(f'{exported_data_path}')
-
-    # Close the MongoDB connection
-    client.close()
+        # Close the MongoDB connection
+        client.close()
+    except Exception as err:
+        print("Error Importing", err)
 
 if __name__ == '__main__':
     mongo_uri = input("Enter mongo uri: ")
