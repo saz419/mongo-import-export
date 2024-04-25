@@ -5,7 +5,9 @@ from datetime import datetime
 import os
 import zipfile
 import shutil
+from urllib.parse import urlparse
 import sys
+
 
 def export_mongodb_data(mongo_uri, db_name):
     current_time = datetime.now()
@@ -49,6 +51,7 @@ def export_mongodb_data(mongo_uri, db_name):
 
 if __name__ == '__main__':
     mongo_uri = sys.argv[1]
-    print(mongo_uri)
-    db_name = input("Enter db name: ")
+    uri_paths = urlparse(mongo_uri).path.split('/')
+    db_name = uri_paths[1]
+    print("Database: ", db_name)
     export_mongodb_data(mongo_uri, db_name)
