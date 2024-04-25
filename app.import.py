@@ -19,13 +19,11 @@ def import_mongodb_data(mongo_uri, db_name, zip_file_path):
 
         json_files = [f for f in os.listdir(
             f'{exported_data_path}') if f.endswith('.json')]
-        print("json_files: ", json_files)
         for json_file in json_files:
             collection_name = os.path.splitext(json_file)[0]
 
             with open(os.path.join(f'{exported_data_path}/', json_file), 'r') as file:
                 data = json.load(file)
-                # print(f'{json_file}: ', data)
 
             if isinstance(data, list):
                 for document in data:
